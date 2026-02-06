@@ -18,3 +18,16 @@ class user(Base):
     name =Column(String, Index = True)
     email = Column(String, unique =True, Index =True)
 Base.metadata.create_all(bind= engine)
+
+
+
+
+
+from sqlalchemy.orm import session
+
+def get_db():
+    db = SessionLocal
+    try:
+        yield db
+    finally:
+        db.close()
