@@ -1,2 +1,3 @@
-python is better than all 
+how to add my main to github am stuck
+
 
