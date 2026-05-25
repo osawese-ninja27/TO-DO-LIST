@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>To-Do App</title>
+  <style>
+    /* ── RESET ── */
+    *, *::before, *::after {
+      margin: 0; padding: 0; box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      padding: 40px 20px;
+      color: #1a1a2e;
+    }
+
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+    .header p {
+      color: #888;
+      font-size: 0.88rem;
+    }
+
+    /* ── STATS ── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat-box {
+      background: white;
+      border-radius: 14px;
+      padding: 16px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+    .stat-box .num {
+      font-size: 1.8rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .stat-box .label {
+      font-size: 0.75rem;
+      color: #888;
+      margin-top: 4px;
+    }
+    .stat-box.total   .num { color: #4f46e5; }
+    .stat-box.pending .num { color: #f59e0b; }
+    .stat-box.done    .num { color: #10b981; }
+
+    /* ── ADD FORM ── */
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: #333;
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 6px;
+    }
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      color: #1a1a2e;
+      background: #fafafa;
+      transition: border-color 0.2s, background 0.2s;
+      font-family: inherit;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #4f46e5;
+      background: white;
+    }
+    .form-group textarea {
+      height: 80px;
+      resize: vertical;
+    }
+    .btn-primary {
+      width: 100%;
+      padding: 12px;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      font-family: inherit;
+    }
+    .btn-primary:hover  { background: #4338ca; }
+    .btn-primary:active { transform: scale(0.98); }
+
+    /* ── FILTERS ── */
+    .filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 7px 18px;
+      border-radius: 99px;
+      border: 1.5px solid #e5e7eb;
+      background: white;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .filter-btn:hover { border-color: #4f46e5; color: #4f46e5; }
+    .filter-btn.active {
+      background: #4f46e5;
+      border-color: #4f46e5;
+      color: white;
+    }
+
+    /* ── TODO LIST ── */
+    #todoList {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .todo-card {
+      background: white;
+      border-radius: 14px;
+      padding: 18px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      border-left: 4px solid #4f46e5;
+      animation: slideIn 0.3s ease;
+      transition: box-shadow 0.2s;
+    }
+    .todo-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.1); }
+    .todo-card.done  { border-left-color: #10b981; }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Checkbox */
+    .check-box {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: 2px solid #d1d5db;
+      cursor: pointer;
+      flex-shrink: 0;
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    .check-box:hover   { border-color: #4f46e5; }
+    .check-box.checked { background: #10b981; border-color: #10b981; color: white; }
+
+    /* Todo content */
+    .todo-body { flex: 1; min-width: 0; }
+    .todo-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+      word-break: break-word;
+    }
+    .todo-card.done .todo-title {
+      text-decoration: line-through;
+      color: #9ca3af;
+    }
+    .todo-desc {
+      color: #6b7280;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      margin-bottom: 6px;
+      word-break: break-word;
+    }
+    .todo-date {
+      color: #c4c4c4;
+      font-size: 0.72rem;
+    }
+
+    /* Action buttons */
+    .todo-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .btn-edit,
+    .btn-delete {
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.76rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .btn-edit   { background: #eff6ff; color: #3b82f6; }
+    .btn-delete { background: #fff5f5; color: #ef4444; }
+    .btn-edit:hover   { background: #3b82f6; color: white; }
+    .btn-delete:hover { background: #ef4444; color: white; }
+
+    /* Inline edit form */
+    .edit-form {
+      display: none;
+      margin-top: 12px;
+      padding: 14px;
+      background: #f8f9ff;
+      border-radius: 10px;
+      border: 1.5px dashed #c7d2fe;
+    }
+    .edit-form.open { display: block; }
+    .edit-form input,
+    .edit-form textarea {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      margin-bottom: 8px;
+      font-family: inherit;
+      color: #1a1a2e;
+    }
+    .edit-form input:focus,
+    .edit-form textarea:focus {
+      outline: none;
+      border-color: #4f46e5;
+    }
+    .edit-form textarea { height: 60px; resize: vertical; }
+    .edit-form-btns { display: flex; gap: 8px; }
+    .btn-save {
+      padding: 7px 18px;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-save:hover { background: #4338ca; }
+    .btn-cancel-edit {
+      padding: 7px 18px;
+      background: #f3f4f6;
+      color: #555;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    /* Empty state */
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: #bbb;
+    }
+    .empty .empty-icon { font-size: 3rem; margin-bottom: 14px; }
+    .empty p { font-size: 0.95rem; }
+
+    /* Loading spinner */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #9ca3af;
+      font-size: 0.9rem;
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 20px;
+      background: #1a1a2e;
+      color: white;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      z-index: 9999;
+      transform: translateX(200%);
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      max-width: 300px;
+    }
+    .toast.show  { transform: translateX(0); }
+    .toast.error { background: #ef4444; }
+    .toast.ok    { background: #10b981; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1>📝 To-Do App</h1>
+    <p>Built with FastAPI + SQLite</p>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat-box total">
+      <div class="num" id="totalCount">0</div>
+      <div class="label">Total</div>
+    </div>
+    <div class="stat-box pending">
+      <div class="num" id="pendingCount">0</div>
+      <div class="label">Pending</div>
+    </div>
+    <div class="stat-box done">
+      <div class="num" id="doneCount">0</div>
+      <div class="label">Done</div>
+    </div>
+  </div>
+
+  <!-- ADD FORM -->
+  <div class="card">
+    <h2>➕ Add a New Task</h2>
+    <div class="form-group">
+      <label for="newTitle">Task Title *</label>
+      <input
+        type="text"
+        id="newTitle"
+        placeholder="e.g. Buy groceries"
+        maxlength="200"
+      />
+    </div>
+    <div class="form-group">
+      <label for="newDesc">Description (optional)</label>
+      <textarea
+        id="newDesc"
+        placeholder="Add more details about this task..."
+        maxlength="500"
+      ></textarea>
+    </div>
+    <button class="btn-primary" onclick="createTodo()">
+      Add Task
+    </button>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <button class="filter-btn active" onclick="setFilter('all', this)">
+      All Tasks
+    </button>
+    <button class="filter-btn" onclick="setFilter('pending', this)">
+      ⏳ Pending
+    </button>
+    <button class="filter-btn" onclick="setFilter('completed', this)">
+      ✅ Completed
+    </button>
+  </div>
+
+  <!-- TODO LIST -->
+  <div id="todoList">
+    <div class="loading">Loading tasks...</div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── Config ────────────────────────────────────────────────
+  const API = 'http://127.0.0.1:8000';
+
+  // State
+  let allTodos      = [];
+  let currentFilter = 'all';
+
+
+  // ══════════════════════════════════════════════════════════
+  // API CALLS
+  // ══════════════════════════════════════════════════════════
+
+  // READ — load all todos from the API
+  async function loadTodos() {
+    try {
+      const res = await fetch(`${API}/todos`);
+
+      if (!res.ok) throw new Error('Server error');
+
+      allTodos = await res.json();
+      updateStats();
+      renderTodos();
+
+    } catch (err) {
+      document.getElementById('todoList').innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">❌</div>
+          <p>Cannot connect to API.<br/>
+          Make sure the server is running:<br/>
+          <strong>uvicorn main:app --reload</strong></p>
+        </div>`;
+    }
+  }
+
+
+  // CREATE — add a new todo
+  async function createTodo() {
+    const titleInput = document.getElementById('newTitle');
+    const descInput  = document.getElementById('newDesc');
+
+    const title = titleInput.value.trim();
+    const desc  = descInput.value.trim();
+
+    // Validate
+    if (!title) {
+      showToast('Please enter a task title', 'error');
+      titleInput.focus();
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API}/todos`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          title,
+          description: desc || null
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to create todo');
+      }
+
+      // Clear the form
+      titleInput.value = '';
+      descInput.value  = '';
+      titleInput.focus();
+
+      showToast('Task added!', 'ok');
+      await loadTodos();  // Refresh the list
+
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+
+  // UPDATE — toggle completed status
+  async function toggleComplete(id, isCurrentlyDone) {
+    try {
+      const res = await fetch(`${API}/todos/${id}`, {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ completed: !isCurrentlyDone })
+      });
+
+      if (!res.ok) throw new Error('Update failed');
+
+      showToast(
+        !isCurrentlyDone ? '✅ Marked as done!' : '🔄 Marked as pending',
+        'ok'
+      );
+      await loadTodos();
+
+    } catch (err) {
+      showToast('Could not update task', 'error');
+    }
+  }
+
+
+  // UPDATE — save edited title and description
+  async function saveEdit(id) {
+    const titleInput = document.getElementById(`edit-title-${id}`);
+    const descInput  = document.getElementById(`edit-desc-${id}`);
+
+    const title = titleInput.value.trim();
+    const desc  = descInput.value.trim();
+
+    if (!title) {
+      showToast('Title cannot be empty', 'error');
+      titleInput.focus();
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API}/todos/${id}`, {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          title,
+          description: desc || null
+        })
+      });
+
+      if (!res.ok) throw new Error('Update failed');
+
+      showToast('✏️ Task updated!', 'ok');
+      await loadTodos();
+
+    } catch (err) {
+      showToast('Could not update task', 'error');
+    }
+  }
+
+
+  // DELETE — remove a single todo
+  async function deleteTodo(id, title) {
+    const confirmed = confirm(`Delete "${title}"?\nThis cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`${API}/todos/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (!res.ok) throw new Error('Delete failed');
+
+      showToast(`🗑️ "${title}" deleted`);
+      await loadTodos();
+
+    } catch (err) {
+      showToast('Could not delete task', 'error');
+    }
+  }
+
+
+  // ══════════════════════════════════════════════════════════
+  // RENDER
+  // ══════════════════════════════════════════════════════════
+  function renderTodos() {
+    const container = document.getElementById('todoList');
+
+    // Apply filter
+    let list = allTodos;
+    if (currentFilter === 'pending')   list = allTodos.filter(t => !t.completed);
+    if (currentFilter === 'completed') list = allTodos.filter(t => t.completed);
+
+    // Empty state
+    if (list.length === 0) {
+      const messages = {
+        all:       { icon: '📋', text: 'No tasks yet. Add one above!' },
+        pending:   { icon: '🎉', text: 'No pending tasks. All done!' },
+        completed: { icon: '📝', text: 'No completed tasks yet.' }
+      };
+      const msg = messages[currentFilter];
+      container.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">${msg.icon}</div>
+          <p>${msg.text}</p>
+        </div>`;
+      return;
+    }
+
+    // Render each todo card
+    container.innerHTML = list.map(todo => `
+      <div class="todo-card ${todo.completed ? 'done' : ''}" id="card-${todo.id}">
+
+        <!-- Checkbox -->
+        <div
+          class="check-box ${todo.completed ? 'checked' : ''}"
+          onclick="toggleComplete(${todo.id}, ${todo.completed})"
+          title="${todo.completed ? 'Mark as pending' : 'Mark as done'}"
+        >
+          ${todo.completed ? '✓' : ''}
+        </div>
+
+        <!-- Content -->
+        <div class="todo-body">
+          <div class="todo-title">${safe(todo.title)}</div>
+
+          ${todo.description
+            ? `<div class="todo-desc">${safe(todo.description)}</div>`
+            : ''}
+
+          <div class="todo-date">
+            📅 ${formatDate(todo.created_at)}
+          </div>
+
+          <!-- Inline edit form (hidden by default) -->
+          <div class="edit-form" id="edit-form-${todo.id}">
+            <input
+              id="edit-title-${todo.id}"
+              type="text"
+              value="${safe(todo.title)}"
+              placeholder="Task title"
+              maxlength="200"
+            />
+            <textarea
+              id="edit-desc-${todo.id}"
+              placeholder="Description (optional)"
+              maxlength="500"
+            >${safe(todo.description || '')}</textarea>
+            <div class="edit-form-btns">
+              <button class="btn-save" onclick="saveEdit(${todo.id})">
+                Save
+              </button>
+              <button class="btn-cancel-edit" onclick="toggleEditForm(${todo.id})">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="todo-actions">
+          <button class="btn-edit" onclick="toggleEditForm(${todo.id})">
+            ✏️ Edit
+          </button>
+          <button class="btn-delete" onclick="deleteTodo(${todo.id}, '${safe(todo.title)}')">
+            🗑️ Delete
+          </button>
+        </div>
+
+      </div>
+    `).join('');
+  }
+
+
+  // ══════════════════════════════════════════════════════════
+  // HELPERS
+  // ══════════════════════════════════════════════════════════
+
+  function setFilter(filter, btn) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-btn')
+            .forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTodos();
+  }
+
+  function toggleEditForm(id) {
+    const form = document.getElementById(`edit-form-${id}`);
+    form.classList.toggle('open');
+  }
+
+  function updateStats() {
+    const total   = allTodos.length;
+    const done    = allTodos.filter(t => t.completed).length;
+    const pending = total - done;
+
+    document.getElementById('totalCount').textContent   = total;
+    document.getElementById('doneCount').textContent    = done;
+    document.getElementById('pendingCount').textContent = pending;
+  }
+
+  function formatDate(dateStr) {
+    return new Date(dateStr).toLocaleDateString('en-GB', {
+      day:    'numeric',
+      month:  'short',
+      year:   'numeric',
+      hour:   '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  // Prevent XSS — escape HTML special characters
+  function safe(str) {
+    if (!str) return '';
+    return str
+      .replace(/&/g,  '&amp;')
+      .replace(/</g,  '&lt;')
+      .replace(/>/g,  '&gt;')
+      .replace(/"/g,  '&quot;')
+      .replace(/'/g,  '&#39;');
+  }
+
+  // Toast notification
+  function showToast(msg, type = '') {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.className   = `toast ${type} show`;
+    setTimeout(() => {
+      toast.classList.remove('show');
+    }, 3000);
+  }
+
+  // Press Enter in title field to submit
+  document.getElementById('newTitle').addEventListener('keydown', e => {
+    if (e.key === 'Enter') createTodo();
+  });
+
+  // Load todos when page loads
+  loadTodos();
+</script>
+</body>
+</html>
